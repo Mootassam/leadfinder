@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.bak
+.venv/
+venv/
+
+# Lead data & settings (API keys live in the database) — never commit
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.log
+.installed
+
+# Build output (recreated by build.ps1)
+build_embed/
+build_cache/
+installer_output/
+duckdb_ext/
+dist/
+build/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

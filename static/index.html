@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Finder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Ccircle cx='14' cy='14' r='7' fill='none' stroke='white' stroke-width='3'/%3E%3Cpath d='M19 19l6 6' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <a class="brand" href="#/">
+      <span class="logo"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5.5 5.5" /></svg></span>
+      <span><b>Lead Finder</b><small>Local B2B prospecting</small></span>
+    </a>
+    <nav id="nav">
+      <a href="#/" data-r="home"><i data-i="search"></i><span>Find leads</span></a>
+      <a href="#/leads" data-r="leads"><i data-i="users"></i><span>All leads</span><em id="navCount"></em></a>
+      <a href="#/history" data-r="history"><i data-i="clock"></i><span>Searches</span></a>
+      <a href="#/settings" data-r="settings"><i data-i="gear"></i><span>Settings</span></a>
+    </nav>
+    <div id="runningBox" class="running-box hidden"></div>
+    <div class="side-foot">
+      <button class="icon-btn" id="themeBtn" title="Toggle dark mode"><i data-i="moon"></i></button>
+      <span>Runs on your PC · data stays local</span>
+    </div>
+  </aside>
+  <main id="view" class="view"></main>
+</div>
+<div id="drawer" class="drawer"><div class="drawer-bg" data-close></div><div class="drawer-panel" id="drawerPanel"></div></div>
+<div id="modal" class="modal hidden"></div>
+<div id="toasts" class="toasts"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

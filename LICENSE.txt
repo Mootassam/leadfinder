@@ -1,0 +1,17 @@
+Lead Finder - End User License Agreement
+
+Lead Finder runs entirely on your computer. Your searches and leads are stored only in
+your own user folder and are never uploaded anywhere by Lead Finder.
+
+Lead Finder collects publicly published business information: listings from
+OpenStreetMap (data (c) OpenStreetMap contributors, ODbL) and, if you add your own API
+keys, Google Places and Yelp - subject to those providers' terms - plus the contact
+details businesses publish on their own websites.
+
+You are responsible for how you use the data. When contacting businesses, follow the
+laws that apply to you and to them (for example GDPR / ePrivacy in the EU, CAN-SPAM in
+the US, CASL in Canada): identify yourself, offer an easy opt-out, and honour it.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THE
+SOFTWARE. Google, Yelp and OpenStreetMap are trademarks of their respective owners.
