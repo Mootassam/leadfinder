@@ -121,6 +121,7 @@ DEFAULTS = {
     "google_budget": "150", "yelp_budget": "100",
     "mailblaster_db": "",
     "companies_house_key": "", "brave_key": "", "hf_token": "",
+    "opencorporates_token": "", "wikidata_max": "1500",
     "overture_min_conf": "0.35", "webfind_max": "5000", "verify_guesses": "1",
 }
 

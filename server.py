@@ -67,7 +67,8 @@ def niches():
 
 @app.get("/api/sources-info")
 def sources_info():
-    return jsonify({"registries": registries.SUPPORTED, "duckdb": overture.available()})
+    return jsonify({"registries": registries.SUPPORTED, "global_sources": registries.GLOBAL_SOURCES,
+                    "duckdb": overture.available()})
 
 
 @app.get("/api/niche-match")

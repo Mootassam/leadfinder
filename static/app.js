@@ -189,6 +189,8 @@ const SRC_OPTS = [
   ["oRegistry", "Business registers", "Every registered company · FR · NO · FI · UK", true],
   ["oOsm", "OpenStreetMap", "Community map · worldwide · free", true],
   ["oFsq", "Foursquare", "100M+ places · free Hugging Face token", false],
+  ["oOpenCorp", "OpenCorporates", "Worldwide company registries · free API token", false],
+  ["oWikidata", "Wikidata", "Notable companies in the area · worldwide · free", false],
   ["oGoogle", "Google Places", "Phones & websites · your API key", false],
   ["oYelp", "Yelp", "Ratings & reviews · your API key", false],
 ];
@@ -346,7 +348,8 @@ async function start() {
       enrich: $("#oEnrich").checked, find_websites: $("#oFindWeb").checked, people: $("#oPeople").checked,
       enrich_missing_only: $("#oFast").checked,
       sources: { overture: $("#oOverture").checked, registry: $("#oRegistry").checked, osm: $("#oOsm").checked,
-        fsq: $("#oFsq").checked, google: $("#oGoogle").checked, yelp: $("#oYelp").checked } } });
+        fsq: $("#oFsq").checked, opencorporates: $("#oOpenCorp").checked, wikidata: $("#oWikidata").checked,
+        google: $("#oGoogle").checked, yelp: $("#oYelp").checked } } });
     home.niches = []; home.locs = [];
     location.hash = "#/run/" + r.id;
     refreshSide();
@@ -778,7 +781,7 @@ async function Settings() {
   view.innerHTML = `<h1>Settings</h1><p class="sub" style="margin-bottom:20px">Everything is stored on this PC in <code>${esc(s.data_dir)}</code>.</p>
   <div class="set-grid">
     <div class="card"><div class="card-h"><h2>Data sources</h2></div><div class="card-b">
-      <div class="src-note">${icon("check")} Built in, free, no key: <b>Overture Maps</b> (tens of millions of businesses worldwide), <b>OpenStreetMap</b>, and the official business registers of <b>France, Norway and Finland</b>.</div>
+      <div class="src-note">${icon("check")} Built in, free, no key: <b>Overture Maps</b> (tens of millions of businesses worldwide), <b>OpenStreetMap</b>, <b>Wikidata</b> (notable companies in any country), and the official business registers of <b>France, Norway and Finland</b>. <b>OpenCorporates</b> (worldwide registries) needs a free API token.</div>
       <div><label class="lbl">Google Places API key <span class="hint">(optional — more businesses + websites + ratings)</span></label>
         <div class="keyrow"><input class="input" id="gKey" type="password" value="${esc(s.google_key)}" placeholder="AIza…"><button class="btn" data-test="google">Test</button></div>
         <p class="hint">Create one in Google Cloud Console → enable “Places API (New)”. Google bills per request after its free monthly credit; the budget below caps each search.</p></div>
@@ -789,6 +792,9 @@ async function Settings() {
       <div><label class="lbl">Companies House API key <span class="hint">(free — every UK company + its directors)</span></label>
         <div class="keyrow"><input class="input" id="chKey" type="password" value="${esc(s.companies_house_key)}" placeholder="REST API key"><button class="btn" data-test="companies_house">Test</button></div>
         <p class="hint">Register at developer.company-information.service.gov.uk → create an application → REST API key.</p></div>
+      <div><label class="lbl">OpenCorporates API token <span class="hint">(free — worldwide company registries across 140+ jurisdictions)</span></label>
+        <div class="keyrow"><input class="input" id="ocKey" type="password" value="${esc(s.opencorporates_token)}" placeholder="API token"></div>
+        <p class="hint">Request a free token at opencorporates.com/api_accounts/new. Without it, OpenCorporates is skipped.</p></div>
       <div><label class="lbl">Hugging Face token <span class="hint">(free — unlocks Foursquare Open Places, 100M+ places)</span></label>
         <div class="keyrow"><input class="input" id="hfKey" type="password" value="${esc(s.hf_token)}" placeholder="hf_…"><button class="btn" data-test="hf">Test</button></div>
         <p class="hint">huggingface.co → Settings → Access tokens (read). Then open the fsq-os-places dataset page once and accept its terms.</p></div>
@@ -825,6 +831,7 @@ async function Settings() {
     await api("/api/settings", { method: "POST", body: { google_key: $("#gKey").value.trim(), yelp_key: $("#yKey").value.trim(), google_budget: $("#gBud").value,
       yelp_budget: $("#yBud").value, workers: $("#wk").value, pages_per_site: $("#pp").value, site_timeout: $("#to").value, mailblaster_db: $("#mbPath").value.trim(),
       companies_house_key: $("#chKey").value.trim(), hf_token: $("#hfKey").value.trim(), brave_key: $("#brKey").value.trim(),
+      opencorporates_token: $("#ocKey").value.trim(),
       webfind_max: $("#wfMax").value, overture_min_conf: $("#ovConf").value, verify_guesses: $("#vfy").checked ? "1" : "0" } });
     toast("Settings saved");
   };

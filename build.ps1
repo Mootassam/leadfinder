@@ -44,6 +44,13 @@ if ($LASTEXITCODE -ne 0) { throw "could not bundle the DuckDB httpfs extension" 
 Copy-Item (Join-Path $root "leadfinder.ico") $app
 Copy-Item -Recurse (Join-Path $root "static") (Join-Path $app "static")
 New-Item -ItemType File (Join-Path $app ".installed") | Out-Null   # data goes to %LOCALAPPDATA%\Lead Finder
+
+# smoke test: the staged runtime must import every module the app needs (incl. new sources)
+$check = "import sys; sys.path.insert(0, r'$app'); import flask, requests, duckdb, dns.resolver, openpyxl, " +
+         "store, engine, registries, sources, overture, enrich, people, verify, webfind, taxonomy, categories, geo, app_paths; " +
+         "print('imports ok')"
+& (Join-Path $rt "python.exe") -c $check
+if ($LASTEXITCODE -ne 0) { throw "staged runtime cannot import the app" }
 Get-ChildItem $stage -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force
 
 $iscc = Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe"

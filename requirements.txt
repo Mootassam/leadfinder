@@ -2,4 +2,4 @@ flask>=3.0
 requests>=2.31
 dnspython>=2.4
 openpyxl>=3.1
-duckdb>=1.1
+duckdb==1.5.5

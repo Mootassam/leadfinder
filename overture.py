@@ -35,7 +35,8 @@ def available() -> bool:
     try:
         import duckdb  # noqa: F401
         return True
-    except ImportError:
+    except Exception:
+        # ImportError, or a Smart App Control / DLL-load block on the native extension
         return False
 
 

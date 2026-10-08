@@ -173,6 +173,16 @@ class Job:
                     n = self._source("Business register", lambda: registries.search(
                         cc, m, geo, settings, self.cancel, self.log, cb))
                     self.log(f"{registries.SUPPORTED[cc.upper()]}: {n:,} registered businesses.", "ok")
+                if srcs.get("opencorporates") and not self._cap_hit():
+                    self.phase = f"OpenCorporates · {label} · {where}"
+                    n = self._source("OpenCorporates", lambda: registries.opencorporates(
+                        m, geo, settings, self.cancel, self.log, cb))
+                    self.log(f"OpenCorporates: {n:,} companies for {label} in {where}.", "ok")
+                if srcs.get("wikidata") and not self._cap_hit():
+                    self.phase = f"Wikidata · {label} · {where}"
+                    n = self._source("Wikidata", lambda: registries.wikidata(
+                        m, geo, settings, self.cancel, self.log, cb))
+                    self.log(f"Wikidata: {n:,} companies for {label} in {where}.", "ok")
                 if srcs.get("fsq") and sess and not self._cap_hit():
                     self.phase = f"Foursquare · {label} · {where}"
                     n = self._source("Foursquare", lambda: overture.fsq(

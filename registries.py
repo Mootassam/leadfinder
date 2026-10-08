@@ -55,6 +55,11 @@ def supported(cc: str) -> bool:
     return (cc or "").upper() in SUPPORTED
 
 
+# Global sources (work for any country, so they are not keyed by country code).
+GLOBAL_SOURCES = {"opencorporates": "OpenCorporates (worldwide registries)",
+                  "wikidata": "Wikidata (notable companies, any country)"}
+
+
 def _get(cc, url, cancel, **kw):
     for attempt in range(5):
         if cancel.is_set():
@@ -405,6 +410,187 @@ def _gb(m, geo, settings, cancel, log, on_batch) -> int:
             break
         start += len(items)
     return total
+
+
+# --------------------------------------------------------------------------- #
+# OpenCorporates — worldwide company registry aggregator (optional free token)
+# --------------------------------------------------------------------------- #
+OC_API = "https://api.opencorporates.com/v0.4/companies/search"
+_OC_RATE = _Rate(2)
+
+# Countries OpenCorporates indexes under a single ISO-alpha2 jurisdiction code.
+_OC_SINGLE_JUR = set("gb fr de es it nl be pt ie dk se no fi pl cz at ch gr hu ro sk si "
+                     "bg hr ee lv lt lu mt cy is nz za sg hk".split())
+
+
+def _oc_get(params, cancel):
+    for attempt in range(5):
+        if cancel.is_set():
+            raise Cancelled()
+        _OC_RATE.wait()
+        try:
+            r = _S.get(OC_API, params=params, timeout=40)
+        except requests.RequestException:
+            time.sleep(2 + attempt * 3)
+            continue
+        if r.status_code == 429 or r.status_code >= 500:
+            time.sleep(3 + attempt * 5)
+            continue
+        return r
+    raise RuntimeError("OpenCorporates is not answering right now")
+
+
+def opencorporates(m, geo, settings, cancel, log, on_batch) -> int:
+    token = (settings.get("opencorporates_token") or "").strip()
+    if not token:
+        log("OpenCorporates skipped — it needs a free API token (add one in Settings).", "warn")
+        return 0
+    cc = (geo.get("country_code") or "").lower()
+    term = "" if m["key"] == "all" else (m.get("term") or m["label"])
+    params = {"per_page": 100, "order": "score", "api_token": token}
+    if cc in _OC_SINGLE_JUR:
+        params["jurisdiction_code"] = cc
+    elif cc:
+        params["country_code"] = cc            # federated countries (us/ca/au…): filter by country
+    if term:
+        params["q"] = term
+    total, page = 0, 1
+    max_pages = 20 if token else 5            # the free tier without a token is limited
+    while page <= max_pages:
+        r = _oc_get({**params, "page": page}, cancel)
+        if r.status_code == 401:
+            log("OpenCorporates rejected the API token.", "warn")
+            return total
+        if r.status_code == 403:
+            log("OpenCorporates: free limit reached — add a free API token in Settings for more.", "warn")
+            return total
+        if r.status_code != 200:
+            log(f"OpenCorporates: {r.text[:160]}", "warn")
+            return total
+        try:
+            res = r.json().get("results", {})
+        except ValueError:
+            break
+        companies = res.get("companies", [])
+        if page == 1:
+            log(f"OpenCorporates: {res.get('total_count', len(companies)):,} companies"
+                f"{' for ' + term if term else ''}.")
+        batch = []
+        for wrap in companies:
+            co = wrap.get("company") or {}
+            if co.get("inactive") or co.get("dissolution_date"):
+                continue
+            jur = co.get("jurisdiction_code") or ""
+            num = co.get("company_number") or ""
+            if not num:
+                continue
+            ra = co.get("registered_address") or {}
+            batch.append({
+                "name": _title(co.get("name", "")), "legal_name": _title(co.get("name", "")),
+                "category": m["label"] if m["key"] != "all" else (co.get("company_type") or ""),
+                "address": co.get("registered_address_in_full") or "",
+                "city": _title(ra.get("locality") or ""), "postcode": ra.get("postal_code") or "",
+                "country": ra.get("country") or geo.get("country", ""),
+                "country_code": (jur.split("_")[0] or geo.get("country_code", "")).upper(),
+                "reg_id": f"OC:{jur}/{num}", "company_id": num,
+                "founded": co.get("incorporation_date") or "",
+                "maps_url": co.get("opencorporates_url") or co.get("registry_url") or "",
+                "sources": ["OpenCorporates"],
+            })
+        total += len(batch)
+        if batch:
+            on_batch(batch)
+        if len(companies) < 100:
+            break
+        page += 1
+    return total
+
+
+# --------------------------------------------------------------------------- #
+# Wikidata — notable companies anywhere, located inside the search area (SPARQL)
+# --------------------------------------------------------------------------- #
+WD_API = "https://query.wikidata.org/sparql"
+_WD_RATE = _Rate(1)
+# instance-of values that mean "a company/business"
+_WD_TYPES = "wd:Q4830453 wd:Q6881511 wd:Q783794 wd:Q891723 wd:Q18388277 wd:Q210167 wd:Q43229"
+
+
+def _wd_query(bbox, term, cap):
+    s, w, n, e = bbox
+    flt = ""
+    if term:
+        t = term.lower().replace('"', "")
+        flt = (f'  ?item rdfs:label ?lbl . FILTER(LANG(?lbl)="en")\n'
+               f'  OPTIONAL {{ ?item wdt:P452 ?ind . ?ind rdfs:label ?indL . FILTER(LANG(?indL)="en") }}\n'
+               f'  FILTER(CONTAINS(LCASE(?lbl), "{t}") || CONTAINS(LCASE(COALESCE(?indL,"")), "{t}"))\n')
+    return (
+        "SELECT ?item ?itemLabel ?website ?coord ?countryLabel ?indLabel WHERE {\n"
+        "  SERVICE wikibase:box {\n"
+        "    ?item wdt:P625 ?coord .\n"
+        f'    bd:serviceParam wikibase:cornerSouthWest "Point({w} {s})"^^geo:wktLiteral .\n'
+        f'    bd:serviceParam wikibase:cornerNorthEast "Point({e} {n})"^^geo:wktLiteral .\n'
+        "  }\n"
+        f"  VALUES ?type {{ {_WD_TYPES} }}\n"
+        "  ?item wdt:P31 ?type .\n"
+        "  OPTIONAL { ?item wdt:P856 ?website. }\n"
+        "  OPTIONAL { ?item wdt:P17 ?country. }\n"
+        "  OPTIONAL { ?item wdt:P452 ?industry. }\n"
+        f"{flt}"
+        '  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }\n'
+        f"}} LIMIT {cap}"
+    )
+
+
+def wikidata(m, geo, settings, cancel, log, on_batch) -> int:
+    bbox = geo.get("bbox")
+    if not bbox:
+        return 0
+    term = "" if m["key"] == "all" else (m.get("term") or m["label"])
+    cap = int(settings.get("wikidata_max") or 1500)
+    if cancel.is_set():
+        raise Cancelled()
+    _WD_RATE.wait()
+    try:
+        r = _S.get(WD_API, params={"query": _wd_query(bbox, term, cap), "format": "json"},
+                   headers={"Accept": "application/sparql-results+json"}, timeout=90)
+    except requests.RequestException as ex:
+        log(f"Wikidata: {type(ex).__name__} — skipped.", "warn")
+        return 0
+    if r.status_code != 200:
+        log(f"Wikidata: query failed ({r.status_code}) — skipped.", "warn")
+        return 0
+    try:
+        rows = r.json().get("results", {}).get("bindings", [])
+    except ValueError:
+        return 0
+    log(f"Wikidata: {len(rows):,} notable companies in this area"
+        f"{' matching ' + term if term else ''}.")
+    seen, batch = set(), []
+    for b in rows:
+        qid = b.get("item", {}).get("value", "").rsplit("/", 1)[-1]
+        if not qid or qid in seen:
+            continue
+        seen.add(qid)
+        name = b.get("itemLabel", {}).get("value", "")
+        if not name or name == qid:
+            continue
+        lat = lon = None
+        coord = b.get("coord", {}).get("value", "")
+        mm = re.match(r"Point\(([-\d.]+) ([-\d.]+)\)", coord)
+        if mm:
+            lon, lat = float(mm.group(1)), float(mm.group(2))
+        web = b.get("website", {}).get("value", "")
+        batch.append({
+            "name": name, "legal_name": name,
+            "category": m["label"] if m["key"] != "all" else b.get("indLabel", {}).get("value", ""),
+            "country": b.get("countryLabel", {}).get("value", "") or geo.get("country", ""),
+            "country_code": geo.get("country_code", ""), "lat": lat, "lon": lon,
+            "website": web, "reg_id": f"WD:{qid}", "company_id": qid,
+            "maps_url": f"https://www.wikidata.org/wiki/{qid}", "sources": ["Wikidata"],
+        })
+    if batch:
+        on_batch(batch)
+    return len(batch)
 
 
 # --------------------------------------------------------------------------- #

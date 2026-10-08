@@ -3,7 +3,7 @@
 ; Build: powershell -ExecutionPolicy Bypass -File build.ps1   (stages build_embed\ then runs ISCC)
 
 #define MyAppName "Lead Finder"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "Lead Finder"
 
 [Setup]
